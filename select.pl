@@ -99,7 +99,9 @@ sub Select	{
 # for(keys %FORM){print "$_ = $FORM{$_}<br>\n";}
 for (keys %fields)	{
 	if ($FORM{$_}) 
-		{$selected .= ",$_"};
+		{$selected .= ",$_";
+		push @selected, $_;
+			};
 	if ($FORM{"value$_"})
 		{
 		if ($FORM{"where$_"} eq "like") {$FORM{"value$_"} = "%" . $FORM{"value$_"} . "%"};
@@ -110,30 +112,37 @@ $selected =~ s/^,//;
 $where =~ s/^AND//;
 
 if ($FORM{star}) {$selected = "*"};
+if ($where) {$where = "WHERE " . $where}
 
-$Data->Sql("SELECT $selected FROM $table WHERE $where");
+$Data->Sql("SELECT $selected FROM $table $where");
+@error=$Data->Error();
 
 print <<EndHTML1;
 <html>
 <head><title>SELECT results</title></head>
 The SQL query executed:<br>
-<b>SELECT $selected FROM $table WHERE $wher</b><br>
+<b>SELECT $selected FROM $table $where</b><br>
 
-The error messages (if any) returned from the ODBC source:<br>
-<b>
 EndHTML1
 
-@error=$Data->Error();
-print "<b>$error[1]</b>";
+unless ($error[1] eq "")
+	{print "Error message returned from the ODBC source: <b>$error[1]</b>"}
 
 #  Now to print the query results, if any
-print "<table>\n";
+print "<hr><table><tr>\n";
+
+# Print the table header
+unless ($selected[0]) {@selected = (keys %fields)}
+for (@selected)	{
+	print "<th bgcolor=MAROON><font color=WHITE>$_</font>";	}
 
 while ($Data->FetchRow())	{
 	%record=$Data->DataHash;
+	for (keys %record)	{
+		$record{$_} =~ s/^\W.*// }
 	print "<tr>";
 	for (keys %record)	{
-		print "<td>$record{$_}";	}
+		print "<td bgcolor=WHITE>$record{$_}";	}
 		}
 
 print "</table>";
